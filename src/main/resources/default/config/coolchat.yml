@@ -1,0 +1,3 @@
+account:
+  session:
+    max-life: 604800
