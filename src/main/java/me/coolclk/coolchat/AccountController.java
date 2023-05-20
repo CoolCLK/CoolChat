@@ -365,10 +365,32 @@ public class AccountController {
      */
     public static Account getAccount(String account) {
         if (checkAccountAvailable(account, null) == 1) {
-            Account gettingAccount = AccountController.accounts.stream().filter(a -> Objects.equals(account, a.account)).findAny().orElse(null);
-            return gettingAccount;
+            return AccountController.accounts.stream().filter(a -> Objects.equals(account, a.account)).findAny().orElse(null);
         }
         return null;
+    }
+
+    /**
+     * 获取一个账号的昵称。
+     * @return 昵称
+     * @author CoolCLK
+     */
+    public static String getAccountNickname(String account) {
+        if (getAccount(account) != null) {
+            return getAccount(account).nickname;
+        }
+        return null;
+    }
+
+    /**
+     * 删除一个账号（警告：不可恢复）。
+     * @author CoolCLK
+     */
+    public static void deleteAccount(String account) {
+        if (checkAccountAvailable(account, null) == 1) {
+            accounts.remove(getAccount(account));
+            saveAccountFile();
+        }
     }
 
     /**

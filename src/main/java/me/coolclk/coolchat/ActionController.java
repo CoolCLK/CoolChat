@@ -3,11 +3,15 @@ package me.coolclk.coolchat;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -160,15 +164,39 @@ public class ActionController {
     }
 
     /**
+     * 请求退出登录结果。
+     * @return { "status": 状态码, "message": 消息 }
+     * @author CoolCLK
+     */
+    @ResponseBody
+    @RequestMapping(value = "deleteAccount")
+    public Object deleteAccountRequest(HttpServletResponse response, HttpServletRequest request) {
+        Map<String, Object> _request = new HashMap<>();
+        _request.put("status", 0);
+        _request.put("message", "注销账号失败");
+        if (request.getCookies() != null) {
+            Arrays.stream(request.getCookies()).filter(c -> Objects.equals(c.getName(), "account_session")).findAny().ifPresent(sessionCookie -> {
+                if ((int) ((Map<String, Object>) checkLogin(response, request)).get("status") == 1) {
+                    AccountController.deleteAccount(AccountController.accountLogin(sessionCookie.getValue(), true).account);
+                }
+                _request.put("status", 1);
+                _request.put("message", "注销账号成功");
+            });
+        }
+        return _request;
+    }
+
+    /**
      * 获取账号信息（若已登录显示更全面的信息）。
      * @return { "status": 状态码... }
      * @author CoolCLK
      */
     @ResponseBody
     @RequestMapping(value = "profile")
-    public Object getAccountProfile(HttpServletResponse response, HttpServletRequest request, @RequestParam(value="account", defaultValue = "") String accountArg) {
+    public Map<String, Object> getAccountProfile(HttpServletResponse response, HttpServletRequest request, @RequestParam(value="account", defaultValue = "") String accountArg) {
         Map<String, Object> _request = new HashMap<>();
         _request.put("status", 0);
+        _request.put("owner", false);
         boolean full = false;
         AccountController.Account account = null;
         if (request.getCookies() != null) {
@@ -176,7 +204,7 @@ public class ActionController {
             if (sessionCookie != null) {
                 AccountController.Account gettingAccount = AccountController.accountLogin(sessionCookie.getValue(), true);
                 if (gettingAccount != null) {
-                    if (accountArg != "") {
+                    if (!Objects.equals(accountArg, "")) {
                         full = (Objects.equals(gettingAccount.account, accountArg));
                     }
                     else {
@@ -187,7 +215,7 @@ public class ActionController {
             }
         }
         if (full || AccountController.checkAccountAvailable(accountArg, null) == 1) {
-            if (account != null) {
+            if (account == null) {
                 account = AccountController.getAccount(accountArg);
             }
             _request.put("status", 1);
@@ -195,8 +223,35 @@ public class ActionController {
             _request.put("nickname", account.nickname);
             _request.put("registerTime", account.registerTime);
             if (full) {
-
+                _request.put("owner", true);
             }
+        }
+        return _request;
+    }
+
+    /**
+     * 更新账号信息（需要登录）。
+     * @return { "status": 状态码... }
+     * @author CoolCLK
+     */
+    @ResponseBody
+    @RequestMapping(value = "updateProfile")
+    public Object updateAccountProfile(HttpServletResponse response, HttpServletRequest request, @RequestParam(value="key") String updateKeyname, @RequestParam(value="value") Object updateValue) {
+        Map<String, Object> _request = new HashMap<>();
+        _request.put("status", 0);
+        if ((int) getAccountProfile(response, request, "").get("status") == 1 && (boolean) getAccountProfile(response, request, "").get("owner")) {
+            AccountController.Account account = AccountController.getAccount((String) getAccountProfile(response, request, "").get("account"));;
+            switch (updateKeyname) {
+                case "nickname": {
+                    account.setNickname((String) updateValue);
+                    break;
+                }
+                case "password": {
+                    account.setPassword((String) updateValue);
+                    break;
+                }
+            }
+            AccountController.saveAccountFile();
         }
         return _request;
     }
