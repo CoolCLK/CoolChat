@@ -1,3 +1,7 @@
 account:
   session:
-    max-life: 604800
+    max-life: 604800 # s
+
+chat:
+  file:
+    max-size: 26214400 # B
