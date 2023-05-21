@@ -128,7 +128,6 @@ public class ActionController {
                 } else {
                     _request.put("status", 0);
                     _request.put("message", "无效的登录");
-                    _request.put("reason", Map.of("cookie", Map.of("name", sessionCookie.getName(), "value", sessionCookie.getValue())));
                 }
             }
         }
